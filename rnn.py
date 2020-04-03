@@ -1,20 +1,11 @@
-# Recurrent Neural Network
-
-
-
-# Part 1 - Data Preprocessing
-
-# Importing the libraries
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-# Importing the training set
 dataset_train = pd.read_csv('Google_Stock_Price_Train.csv')
 #we cannot do training_set = dataset_train.iloc[:, 1].values as this will create a vector and not a numpy array.
 training_set = dataset_train.iloc[:, 1:2].values
 
-# Feature Scaling
 # apply normalisation for sigmoid fn
 from sklearn.preprocessing import MinMaxScaler
 sc = MinMaxScaler(feature_range = (0, 1))
@@ -31,64 +22,40 @@ for i in range(60, 1258):# we start at index 0 and end at 1257.
 #convert to array so can be used by rnn
 X_train, y_train = np.array(X_train), np.array(y_train)
 
-# Reshaping
 #adding more dimensionality to data structure, we can add other indicators using this new dimensionality.
 X_train = np.reshape(X_train, (X_train.shape[0], X_train.shape[1], 1))
 #last 1 is no. of indicators which is the open stock price here.
 
-
-# Part 2 - Building the RNN
-
-# Importing the Keras libraries and packages
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import LSTM
 from keras.layers import Dropout
 
-# Initialising the RNN as a sequence of layers
 regressor = Sequential()
-
-# Adding the first LSTM layer and some Dropout regularisation
 # we want high dimensionality so 50 neurons in one layer.
 regressor.add(LSTM(units = 50, return_sequences = True, input_shape = (X_train.shape[1], 1)))
 regressor.add(Dropout(0.1))
-
-# Adding a second LSTM layer and some Dropout regularisation
-regressor.add(LSTM(units = 50, return_sequences = True))
-# add dropout to prevent overfitting
-regressor.add(Dropout(0.1))
-
-# Adding a third LSTM layer and some Dropout regularisation
 regressor.add(LSTM(units = 50, return_sequences = True))
 regressor.add(Dropout(0.1))
-
-# Adding a fourth LSTM layer and some Dropout regularisation
 regressor.add(LSTM(units = 50, return_sequences = True))
 regressor.add(Dropout(0.1))
-#5th layer
+regressor.add(LSTM(units = 50, return_sequences = True))
+regressor.add(Dropout(0.1))
 regressor.add(LSTM(units = 50))
 regressor.add(Dropout(0.1))
-
-# Adding the output layer, to make a full connection we use the Dense class. 
 regressor.add(Dense(units = 1))
 
-# Compiling the RNN
 #experiment different optimizers like rmsprop, mse because its a regression.
 regressor.compile(optimizer = 'adam', loss = 'mean_squared_error')
 
-# Fitting the RNN to the Training set
 regressor.fit(X_train, y_train, epochs = 100, batch_size = 32)
 #loss should be close for last 10 epochs to avoid overfitting
-#we can do the grid search here also, scoring = 'neg_mean_squared_error' in place of 'accuracy'
+#we can do the grid search here also, scoring = 'neg_mean_squared_error'
 
-# Part 3 - Making the predictions and visualising the results
-
-# Getting the real stock price of 2017
 dataset_test = pd.read_csv('Google_Stock_Price_Test.csv')
 real_stock_price = dataset_test.iloc[:, 1:2].values
 
-# Getting the predicted stock price of 2017
-dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis = 0)#vertical axis so axis=0
+dataset_total = pd.concat((dataset_train['Open'], dataset_test['Open']), axis = 0) #vertical axis so axis=0
 inputs = dataset_total[len(dataset_total) - len(dataset_test) - 60:].values
 inputs = inputs.reshape(-1,1)#makes it in one column
 inputs = sc.transform(inputs)#no fit here
@@ -100,7 +67,6 @@ X_test = np.reshape(X_test, (X_test.shape[0], X_test.shape[1], 1))
 predicted_stock_price = regressor.predict(X_test)
 predicted_stock_price = sc.inverse_transform(predicted_stock_price)
 
-# Visualising the results
 plt.plot(real_stock_price, color = 'red', label = 'Real Google Stock Price')
 plt.plot(predicted_stock_price, color = 'blue', label = 'Predicted Google Stock Price')
 plt.title('Google Stock Price Prediction')
